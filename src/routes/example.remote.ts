@@ -1,5 +1,5 @@
 import { form } from "$app/server"
-import { ezForm, ezValidate } from "svelte-ez-form"
+import { ezValidate } from "$lib/index.js"
 import z from "zod"
 
 const schema = z.object({
@@ -7,5 +7,7 @@ const schema = z.object({
 })
 
 export const exampleForm = form(async (data) => {
-  return ezValidate(schema, data)
+  return await ezValidate(schema, data, {
+    onSuccess: () => console.log("yeet")
+  })
 })

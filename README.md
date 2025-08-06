@@ -49,7 +49,17 @@ const schema = z.object({
 });
 
 export const exampleForm = form(async (data) => {
-  return ezValidate(schema, data);
+  return await ezValidate(schema, data, {
+    onSuccess: (resultData) => {
+      console.log('Validation successful:', resultData);
+      // Perform additional server-side actions on success
+      // ex: query.refresh()
+    },
+    onError: (errors) => {
+      console.log('Validation failed:', errors);
+      // Handle validation errors on the server
+    }
+  });
 });
 ```
 
@@ -91,17 +101,42 @@ export const exampleForm = form(async (data) => {
 
 ## API Reference
 
-### `ezValidate(schema, formData)`
+### `ezValidate(schema, formData, options?)`
 
-Validates form data against a Zod schema.
+Validates form data against a Zod schema with optional server-side hooks.
 
 **Parameters:**
 - `schema` - A Zod schema to validate against
 - `formData` - The FormData object from the request
+- `options` - Optional configuration object for server-side hooks
+
+**Options:**
+```typescript
+type EZValidateOptions<TSchema> = {
+  onSuccess?: (resultData: z.infer<TSchema>) => Promise<void> | void;
+  onError?: (errors: Record<string, string[]>) => Promise<void> | void;
+};
+```
 
 **Returns:**
-- Success: `{ success: true, data: T }`
-- Error: `{ success: false, errors: Record<string, string[]>, formErrors?: string[] }`
+- Promise that resolves to:
+  - Success: `{ success: true, data: T }`
+  - Error: `{ success: false, errors: Record<string, string[]>, formErrors?: string[] }`
+
+**Example with hooks:**
+```typescript
+const result = await ezValidate(schema, formData, {
+  onSuccess: async (data) => {
+    // Save to database, send emails, etc.
+    await saveUserToDatabase(data);
+    await sendWelcomeEmail(data.email);
+  },
+  onError: async (errors) => {
+    // Log validation errors, analytics, etc.
+    await logValidationErrors(errors);
+  }
+});
+```
 
 ### `ezForm(form, options?)`
 
@@ -138,6 +173,69 @@ Extracts errors from the form result for easy access in templates.
   errors: Record<string, string[]> | undefined;
   formErrors: string[] | undefined;
 }
+```
+
+## Server-Side Hooks with `ezValidate`
+
+The `ezValidate` function now supports server-side hooks that execute during validation. These hooks allow you to perform additional server-side operations when validation succeeds or fails.
+
+### Success Hook
+
+The `onSuccess` hook executes when validation passes:
+
+```typescript
+export const createUserForm = form(async (data) => {
+  return await ezValidate(userSchema, data, {
+    onSuccess: async (validatedData) => {
+      // Save to database
+      const user = await db.users.create(validatedData);
+      
+      // Send welcome email
+      await emailService.sendWelcome(user.email);
+      
+      // Log successful registration
+      console.log(`User ${user.id} created successfully`);
+    }
+  });
+});
+```
+
+### Error Hook
+
+The `onError` hook executes when validation fails:
+
+```typescript
+export const loginForm = form(async (data) => {
+  return await ezValidate(loginSchema, data, {
+    onError: async (errors) => {
+      // Log failed validation attempts
+      await auditLog.logFailedValidation({
+        timestamp: new Date(),
+        errors,
+        ip: request.ip
+      });
+      
+      // Track analytics
+      analytics.track('form_validation_failed', { errors });
+    }
+  });
+});
+```
+
+### Combined Usage
+
+```typescript
+export const updateProfileForm = form(async (data) => {
+  return await ezValidate(profileSchema, data, {
+    onSuccess: async (validatedData) => {
+      await db.profiles.update(userId, validatedData);
+      await cacheService.invalidateUser(userId);
+    },
+    onError: async (errors) => {
+      await logger.warn('Profile update validation failed', { userId, errors });
+    }
+  });
+});
 ```
 
 ## Using the `append` Option
@@ -238,8 +336,17 @@ const userSchema = z.object({
 
 type User = z.infer<typeof userSchema>;
 
-// Type-safe validation result
-const result: ValidationResult<User> = ezValidate(userSchema, formData);
+// Type-safe async validation result
+const result: ValidationResult<User> = await ezValidate(userSchema, formData, {
+  onSuccess: (data: User) => {
+    // data is fully typed as User
+    console.log(`Welcome ${data.name}!`);
+  },
+  onError: (errors: Record<keyof User, string[]>) => {
+    // errors are typed based on the schema
+    console.log('Validation errors:', errors);
+  }
+});
 
 if (result.success) {
   // result.data is typed as User
@@ -298,6 +405,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 MIT
 
 ## Changelog
+
+### 0.0.2
+- **BREAKING**: `ezValidate` is now async and returns a `Promise<ValidationResult<T>>`
+- Added server-side hooks: `onSuccess` and `onError` options for `ezValidate`
+- Enhanced TypeScript support for async validation
+- Improved server-side integration with SvelteKit remote forms
 
 ### 0.0.1
 - Initial release
