@@ -1,6 +1,11 @@
 {
 	"name": "svelte-ez-form",
 	"version": "0.0.1",
+	"license": "MIT",
+	"description": "A simple, type-safe form library for svelte remote forms.",
+	"author": {
+		"name": "Adam Gillispie"
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -50,11 +55,18 @@
 		"vite-plugin-devtools-json": "^0.2.0"
 	},
 	"keywords": [
-		"svelte"
+		"svelte",
+		"remote forms",
+		"form library",
+		"type-safe",
+		"sveltekit",
+		"zod",
+		"form validation",
+		"form handling"
 	],
 	"pnpm": {
 		"onlyBuiltDependencies": [
 			"esbuild"
 		]
-	},
+	}
 }
