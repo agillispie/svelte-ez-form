@@ -2,6 +2,9 @@
 	"name": "svelte-ez-form",
 	"version": "0.0.1",
 	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
 	"description": "A simple, type-safe form library for svelte remote forms.",
 	"author": {
 		"name": "Adam Gillispie"
