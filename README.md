@@ -1,5 +1,7 @@
 # svelte-ez-form
 
+## This is still in early development, use at your own risk in production environments.
+
 A simple and powerful form handling library for SvelteKit that makes form validation and error handling effortless using Zod schemas.
 
 ## Features
