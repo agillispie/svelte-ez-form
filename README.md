@@ -406,9 +406,11 @@ MIT
 
 ## Changelog
 
-### 0.0.2
+### 0.0.3
 - **BREAKING**: `ezValidate` is now async and returns a `Promise<ValidationResult<T>>`
 - Added server-side hooks: `onSuccess` and `onError` options for `ezValidate`
+
+### 0.0.2
 - Enhanced TypeScript support for async validation
 - Improved server-side integration with SvelteKit remote forms
 
