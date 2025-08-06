@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      svelte-ez-form:
-        specifier: file:svelte-ez-form-0.0.1.tgz
-        version: file:svelte-ez-form-0.0.1.tgz(svelte@5.37.3)
       zod:
         specifier: ^4.0.15
         version: 4.0.15
@@ -753,12 +750,6 @@ packages:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: '>=5.0.0'
 
-  svelte-ez-form@file:svelte-ez-form-0.0.1.tgz:
-    resolution: {integrity: sha512-jXOzmkAZO3193omNx5/BEZoUxcIxXV+/zWMQ3DSEOkYexQHd3pTemGxbjaTQgYyCQJ5vdS9V1h9SynMoQh/0sg==, tarball: file:svelte-ez-form-0.0.1.tgz}
-    version: 0.0.1
-    peerDependencies:
-      svelte: ^5.0.0
-
   svelte2tsx@0.7.42:
     resolution: {integrity: sha512-PSNrKS16aVdAajoFjpF5M0t6TA7ha7GcKbBajD9RG3M+vooAuvLnWAGUSC6eJL4zEOVbOWKtcS2BuY4rxPljoA==}
     peerDependencies:
@@ -1414,10 +1405,6 @@ snapshots:
       typescript: 5.9.2
     transitivePeerDependencies:
       - picomatch
-
-  svelte-ez-form@file:svelte-ez-form-0.0.1.tgz(svelte@5.37.3):
-    dependencies:
-      svelte: 5.37.3
 
   svelte2tsx@0.7.42(svelte@5.37.3)(typescript@5.9.2):
     dependencies:
