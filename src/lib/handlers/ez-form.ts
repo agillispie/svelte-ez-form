@@ -2,30 +2,48 @@ import type { ValidationResult } from '$lib/types/types.js';
 import type { RemoteForm } from '@sveltejs/kit';
 
 export type EZFormOptions<T> = {
-	// optional hooks – each may be sync or async
 	onSuccess?: (result: Extract<ValidationResult<T>, { success: true }>) => void | Promise<void>;
 	onError?: (result: Extract<ValidationResult<T>, { success: false }>) => void | Promise<void>;
 	onSettled?: (result: ValidationResult<T> | undefined) => void | Promise<void>;
-	append?: Record<string, FormDataEntryValue>;
+	append?: Record<string, unknown>;
 	reset?: {
 		onError?: boolean;
 		onSuccess?: boolean;
 	};
 };
 
+function toFormDataValue(value: unknown): FormDataEntryValue {
+
+	if (
+		value instanceof Blob ||
+		value instanceof File ||
+		typeof value === 'string' ||
+		typeof value === 'number' ||
+		typeof value === 'boolean'
+	) {
+		return String(value);
+	}
+
+
+	return JSON.stringify(value);
+}
+
 export function ezForm<T>(rf: RemoteForm<ValidationResult<T>>, options?: EZFormOptions<T>) {
 	const originalEnhance = rf.enhance.bind(rf);
 
 	const attrs = originalEnhance(async (e) => {
 		if (options?.append) {
-			for (const [k, v] of Object.entries(options.append)) e.data.set(k, v);
+			for (const [k, v] of Object.entries(options.append)) {
+				console.log(k, v)
+				e.data.set(k, toFormDataValue(v));
+			}
 		}
 
 		await e.submit();
 
 		const res = rf.result as ValidationResult<T> | undefined;
 
-		if (res && res.success) {
+		if (res?.success) {
 			await options?.onSuccess?.(res);
 			if (options?.reset?.onSuccess) e.form.reset();
 		} else if (res && !res.success) {
@@ -36,6 +54,5 @@ export function ezForm<T>(rf: RemoteForm<ValidationResult<T>>, options?: EZFormO
 		await options?.onSettled?.(res);
 	});
 
-	// Keep the exact shape that `enhance` returns (method, action, onsubmit)
 	return attrs satisfies ReturnType<typeof rf.enhance>;
 }

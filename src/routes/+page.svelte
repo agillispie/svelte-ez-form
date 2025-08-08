@@ -1,11 +1,14 @@
 <script lang="ts">
-	import { ezForm, ezErrors } from 'svelte-ez-form';
+	import { ezForm, ezErrors } from '$lib/index.js';
 	import { exampleForm } from './example.remote.js';
 
-	let someObject = {
-		name: 'John Doe',
-		email: ''
-	};
+	let user = [
+		{
+			username: 'John Doe',
+			password: 'asdgasdga',
+			tags: ['tag1', 'tag2']
+		}
+	];
 
 	const form = ezForm(exampleForm, {
 		onSuccess: async (result) => {
@@ -15,7 +18,7 @@
 			console.error('Form submission error:', error);
 		},
 		append: {
-			...someObject
+			user
 		}
 	});
 	let { errors } = $derived(ezErrors(exampleForm));
@@ -26,4 +29,6 @@
 	{#if errors?.name}
 		<span class="error">{errors.name}</span>
 	{/if}
+
+	<button>Submit</button>
 </form>

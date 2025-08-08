@@ -406,6 +406,9 @@ MIT
 
 ## Changelog
 
+### 0.0.4
+- Validated results will now automatically parse JSON data
+
 ### 0.0.3
 - **BREAKING**: `ezValidate` is now async and returns a `Promise<ValidationResult<T>>`
 - Added server-side hooks: `onSuccess` and `onError` options for `ezValidate`

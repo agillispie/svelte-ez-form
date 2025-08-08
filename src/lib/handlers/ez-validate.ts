@@ -10,11 +10,13 @@ async function ezValidate<TSchema extends ZodTypeAny>(
 		onError?: (errors: { [P in keyof z.core.output<TSchema>]?: string[] | undefined; }) => Promise<void> | void
 	}
 ): Promise<ValidationResult<z.infer<TSchema>>> {
+	console.log(formData, 'formData')
+	console.log('raw')
 	const raw = formDataToObject(formData);
-	const result = schema.safeParse(raw);
+	const validated = schema.safeParse(raw);
 
-	if (!result.success) {
-		const flattened = result.error.flatten();
+	if (!validated.success) {
+		const flattened = validated.error.flatten();
 		await options?.onError?.(flattened?.fieldErrors)
 		return {
 			success: false,
@@ -22,10 +24,10 @@ async function ezValidate<TSchema extends ZodTypeAny>(
 			formErrors: flattened.formErrors
 		};
 	}
-	await options?.onSuccess?.(result.data)
+	await options?.onSuccess?.(validated.data)
 	return {
 		success: true,
-		data: result.data
+		data: validated.data
 	};
 }
 
