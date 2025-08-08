@@ -410,13 +410,17 @@ Based on your actual usage pattern:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please feel free to submit a [Pull Request]('https://github.com/agillispie/svelte-ez-form').
+
 
 ## License
 
 MIT
 
 ## Changelog
+
+### 0.0.6
+- Link GH repo
 
 ### 0.0.5
 - Allow passing reactive variables to append via closures
