@@ -246,6 +246,7 @@ The `append` option allows you to automatically add extra data to your form subm
 - Including timestamps
 - Appending metadata or configuration
 - Adding authentication tokens
+- Reactive variables like `$state()` and `$derived()` must be retrieved using a closure
 
 ### Basic Usage
 
@@ -255,10 +256,14 @@ let userContext = {
   timestamp: new Date().toISOString()
 };
 
+let userName = $derived(users[userContext['userId']])
+
 const form = ezForm(exampleForm, {
   append: {
     ...userContext,
-    action: 'create'
+    action: 'create',
+    // since userName is a reactive variable we have to use a closure so we get the most up to date value when the form is submitted.
+    userName: () => userName
   }
 });
 ```
@@ -303,6 +308,8 @@ const schema = z.object({
   import { goto } from '$app/navigation';
   import { toast } from '$lib/toast';
 
+  let someReactiveState = $state("")
+
   const enhanceForm = ezForm(form, {
     onSuccess: async (result) => {
       toast.success('Profile updated successfully!');
@@ -312,7 +319,10 @@ const schema = z.object({
       toast.error('Please fix the errors and try again');
     },
     append: {
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      append: {
+        someReactiveState: () => someReactiveState
+      }
     },
     reset: {
       onSuccess: true
@@ -405,6 +415,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 MIT
 
 ## Changelog
+
+### 0.0.5
+- Allow passing reactive variables to append via closures
 
 ### 0.0.4
 - Validated results will now automatically parse JSON data

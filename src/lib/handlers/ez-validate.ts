@@ -10,8 +10,6 @@ async function ezValidate<TSchema extends ZodTypeAny>(
 		onError?: (errors: { [P in keyof z.core.output<TSchema>]?: string[] | undefined; }) => Promise<void> | void
 	}
 ): Promise<ValidationResult<z.infer<TSchema>>> {
-	console.log(formData, 'formData')
-	console.log('raw')
 	const raw = formDataToObject(formData);
 	const validated = schema.safeParse(raw);
 

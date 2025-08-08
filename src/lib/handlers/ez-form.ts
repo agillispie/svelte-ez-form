@@ -33,8 +33,8 @@ export function ezForm<T>(rf: RemoteForm<ValidationResult<T>>, options?: EZFormO
 
 	const attrs = originalEnhance(async (e) => {
 		if (options?.append) {
-			for (const [k, v] of Object.entries(options.append)) {
-				console.log(k, v)
+			for (const [k, raw] of Object.entries(options.append)) {
+				const v = typeof raw === 'function' ? (raw as () => unknown)() : raw;
 				e.data.set(k, toFormDataValue(v));
 			}
 		}
