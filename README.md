@@ -2,7 +2,7 @@
 
 ## This is still in early development, use at your own risk in production environments.
 
-A simple and powerful form handling library for SvelteKit that makes form validation and error handling effortless using Zod schemas.
+A simple and powerful form handling library for SvelteKit remote forms with Zod schema validation built in.
 
 ## Features
 
@@ -31,7 +31,7 @@ yarn add svelte-ez-form
 
 This library requires:
 - **Svelte 5.0+**
-- **SvelteKit** for form actions
+- **SvelteKit** with remote functions enabled
 - **Zod** for schema validation (peer dependency)
 
 ## Quick Start
@@ -50,8 +50,8 @@ const schema = z.object({
 
 export const exampleForm = form(async (data) => {
   return await ezValidate(schema, data, {
-    onSuccess: (resultData) => {
-      console.log('Validation successful:', resultData);
+    onSuccess: (validated) => {
+      console.log('Validation successful:', validated);
       // Perform additional server-side actions on success
       // ex: query.refresh()
     },
@@ -195,6 +195,8 @@ export const createUserForm = form(async (data) => {
       
       // Log successful registration
       console.log(`User ${user.id} created successfully`);
+
+      await someQuery.refresh()
     }
   });
 });
