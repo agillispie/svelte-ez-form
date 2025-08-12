@@ -54,10 +54,12 @@ export const exampleForm = form(async (data) => {
       console.log('Validation successful:', validated);
       // Perform additional server-side actions on success
       // ex: query.refresh()
+      return { message: 'User created successfully' };
     },
     onError: (errors) => {
       console.log('Validation failed:', errors);
       // Handle validation errors on the server
+      return { errorCode: 'VALIDATION_FAILED' };
     }
   });
 });
@@ -112,16 +114,17 @@ Validates form data against a Zod schema with optional server-side hooks.
 
 **Options:**
 ```typescript
-type EZValidateOptions<TSchema> = {
-  onSuccess?: (resultData: z.infer<TSchema>) => Promise<void> | void;
-  onError?: (errors: Record<string, string[]>) => Promise<void> | void;
+type EZValidateOptions<TSchema, SExtra = undefined, EExtra = undefined> = {
+  onSuccess?: (data: z.output<TSchema>) => SExtra | Promise<SExtra>;
+  onError?: (errors: FieldErrors<TSchema>) => EExtra | Promise<EExtra>;
+  onSettled?: (result: EZSuccess<TSchema, SExtra> | EZFailure<TSchema, EExtra>) => void | Promise<void>;
 };
 ```
 
 **Returns:**
 - Promise that resolves to:
-  - Success: `{ success: true, data: T }`
-  - Error: `{ success: false, errors: Record<string, string[]>, formErrors?: string[] }`
+  - Success: `{ success: true, data: T, returns: SExtra }`
+  - Error: `{ success: false, errors: FieldErrors<T>, formErrors: string[], returns: EExtra }`
 
 **Example with hooks:**
 ```typescript
@@ -130,12 +133,25 @@ const result = await ezValidate(schema, formData, {
     // Save to database, send emails, etc.
     await saveUserToDatabase(data);
     await sendWelcomeEmail(data.email);
+    return { userId: data.id, message: 'Welcome!' };
   },
   onError: async (errors) => {
     // Log validation errors, analytics, etc.
     await logValidationErrors(errors);
+    return { errorCode: 'VALIDATION_FAILED' };
+  },
+  onSettled: async (result) => {
+    // Always runs after success or error
+    console.log('Form processing completed:', result);
   }
 });
+
+if (result.success) {
+  console.log('User ID:', result.returns.userId);
+  console.log('Message:', result.returns.message);
+} else {
+  console.log('Error code:', result.returns.errorCode);
+}
 ```
 
 ### `ezForm(form, options?)`
@@ -196,7 +212,8 @@ export const createUserForm = form(async (data) => {
       // Log successful registration
       console.log(`User ${user.id} created successfully`);
 
-      await someQuery.refresh()
+      // Return data that will be available in result.returns
+      return { userId: user.id, welcomeEmailSent: true };
     }
   });
 });
@@ -219,6 +236,9 @@ export const loginForm = form(async (data) => {
       
       // Track analytics
       analytics.track('form_validation_failed', { errors });
+      
+      // Return error context
+      return { attemptId: crypto.randomUUID(), blocked: false };
     }
   });
 });
@@ -232,9 +252,19 @@ export const updateProfileForm = form(async (data) => {
     onSuccess: async (validatedData) => {
       await db.profiles.update(userId, validatedData);
       await cacheService.invalidateUser(userId);
+      return { updated: true, timestamp: new Date() };
     },
     onError: async (errors) => {
       await logger.warn('Profile update validation failed', { userId, errors });
+      return { errorId: crypto.randomUUID() };
+    },
+    onSettled: async (result) => {
+      // Always log the attempt regardless of success/failure
+      await auditLog.profileUpdateAttempt({
+        userId,
+        success: result.success,
+        timestamp: new Date()
+      });
     }
   });
 });
@@ -349,20 +379,27 @@ const userSchema = z.object({
 type User = z.infer<typeof userSchema>;
 
 // Type-safe async validation result
-const result: ValidationResult<User> = await ezValidate(userSchema, formData, {
+const result = await ezValidate(userSchema, formData, {
   onSuccess: (data: User) => {
     // data is fully typed as User
     console.log(`Welcome ${data.name}!`);
+    return { welcomeMessage: `Hello ${data.name}!` };
   },
-  onError: (errors: Record<keyof User, string[]>) => {
+  onError: (errors: FieldErrors<typeof userSchema>) => {
     // errors are typed based on the schema
     console.log('Validation errors:', errors);
+    return { errorCount: Object.keys(errors).length };
   }
 });
 
 if (result.success) {
   // result.data is typed as User
   console.log(result.data.name, result.data.email);
+  // result.returns is typed based on onSuccess return type
+  console.log(result.returns.welcomeMessage);
+} else {
+  // result.returns is typed based on onError return type
+  console.log(`Found ${result.returns.errorCount} errors`);
 }
 ```
 
@@ -419,8 +456,15 @@ MIT
 
 ## Changelog
 
-### 0.0.6
+### 0.0.7
+- **BREAKING**: Updated `ezValidate` return types with new `EZSuccess` and `EZFailure` structures
+- **BREAKING**: Hook functions (`onSuccess`, `onError`) can now return values that are captured in `result.returns`
+- Added `onSettled` hook that runs after both success and error scenarios
+- Enhanced type safety with generic return types for hook functions
+- Improved error handling with try-catch blocks around hook execution
 - Link GH repo
+### 0.0.6
+- Link GH
 
 ### 0.0.5
 - Allow passing reactive variables to append via closures

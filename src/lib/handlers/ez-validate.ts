@@ -1,32 +1,105 @@
 import { formDataToObject } from '$lib/helpers/form-to-object.js';
-import type { ValidationResult } from '$lib/types/types.js';
 import type { z, ZodTypeAny } from 'zod';
 
-async function ezValidate<TSchema extends ZodTypeAny>(
+// ---------- Types
+
+type FieldErrors<TSchema extends ZodTypeAny> = {
+	[P in keyof z.output<TSchema>]?: string[] | undefined;
+};
+
+export type EZSuccess<TSchema extends ZodTypeAny, SExtra> = {
+	success: true;
+	data: z.output<TSchema>;
+	returns: SExtra;
+};
+
+export type EZFailure<TSchema extends ZodTypeAny, EExtra> = {
+	success: false;
+	errors: FieldErrors<TSchema>;
+	formErrors: string[];
+	returns: EExtra;
+};
+
+export type EZValidateOptions<
+	TSchema extends ZodTypeAny,
+	SExtra = undefined,
+	EExtra = undefined
+> = {
+	onSuccess?: (data: z.output<TSchema>) => SExtra | Promise<SExtra>;
+	onError?: (errors: FieldErrors<TSchema>) => EExtra | Promise<EExtra>;
+	onSettled?: (
+		result:
+			| EZSuccess<TSchema, Awaited<SExtra>>
+			| EZFailure<TSchema, Awaited<EExtra>>
+	) => void | Promise<void>;
+};
+
+
+
+export async function ezValidate<
+	TSchema extends ZodTypeAny,
+	SExtra = undefined,
+	EExtra = undefined
+>(
 	schema: TSchema,
 	formData: FormData,
-	options?: {
-		onSuccess?: (resultData: z.core.output<TSchema>) => Promise<void> | void
-		onError?: (errors: { [P in keyof z.core.output<TSchema>]?: string[] | undefined; }) => Promise<void> | void
-	}
-): Promise<ValidationResult<z.infer<TSchema>>> {
+	options?: EZValidateOptions<TSchema, SExtra, EExtra>
+): Promise<
+	| EZSuccess<TSchema, Awaited<SExtra>>
+	| EZFailure<TSchema, Awaited<EExtra>>
+> {
 	const raw = formDataToObject(formData);
 	const validated = schema.safeParse(raw);
 
 	if (!validated.success) {
 		const flattened = validated.error.flatten();
-		await options?.onError?.(flattened?.fieldErrors)
-		return {
-			success: false,
-			errors: flattened.fieldErrors,
-			formErrors: flattened.formErrors
-		};
-	}
-	await options?.onSuccess?.(validated.data)
-	return {
-		success: true,
-		data: validated.data
-	};
-}
+		const fieldErrors = flattened.fieldErrors as FieldErrors<TSchema>;
 
-export { ezValidate };
+		let returns = undefined as unknown as Awaited<EExtra>;
+		if (options?.onError) {
+			try {
+				returns = await options.onError(fieldErrors);
+			} catch {
+				// do nothing
+			}
+		}
+
+		const result: EZFailure<TSchema, Awaited<EExtra>> = {
+			success: false,
+			errors: fieldErrors,
+			formErrors: flattened.formErrors,
+			returns
+		};
+
+		try {
+			await options?.onSettled?.(result);
+		} catch {
+			// do nothing
+		}
+
+		return result;
+	}
+
+	let returns = undefined as unknown as Awaited<SExtra>;
+	if (options?.onSuccess) {
+		try {
+			returns = await options.onSuccess(validated.data);
+		} catch {
+			// do nothing
+		}
+	}
+
+	const result: EZSuccess<TSchema, Awaited<SExtra>> = {
+		success: true,
+		data: validated.data,
+		returns
+	};
+
+	try {
+		await options?.onSettled?.(result);
+	} catch {
+		// do not throw from settled
+	}
+
+	return result;
+}

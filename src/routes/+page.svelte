@@ -9,13 +9,19 @@
 			tags: ['tag1', 'tag2']
 		}
 	]);
-
+	let count = $state(0);
 	const form = ezForm(exampleForm, {
 		onSuccess: async (result) => {
+			count += 1;
 			console.log('Form submitted successfully:', result);
 		},
 		onError: (error) => {
+			count += 1;
 			console.error('Form submission error:', error);
+		},
+		onSettled: (r) => {
+			//	count += 1;
+			console.log('settled', r);
 		},
 		append: {
 			user: () => user
@@ -32,3 +38,5 @@
 
 	<button>Submit</button>
 </form>
+
+{count}
