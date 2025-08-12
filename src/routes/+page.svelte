@@ -13,7 +13,7 @@
 	const form = ezForm(exampleForm, {
 		onSuccess: async (result) => {
 			count += 1;
-			console.log('Form submitted successfully:', result);
+			console.log(result.returns.someValue);
 		},
 		onError: (error) => {
 			count += 1;

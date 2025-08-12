@@ -17,7 +17,7 @@ export const exampleForm = form(async (data) => {
       console.log(result)
 
       console.log(result.user[0].tags)
-      return { name: "akcodeworks" }
+      return { someValue: "this is my value" }
     }
   })
 })

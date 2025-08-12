@@ -456,6 +456,9 @@ MIT
 
 ## Changelog
 
+### 0.0.8
+- Added typesafe returns for the `returns` provided back to `ezForm`
+
 ### 0.0.7
 - **BREAKING**: Updated `ezValidate` return types with new `EZSuccess` and `EZFailure` structures
 - **BREAKING**: Hook functions (`onSuccess`, `onError`) can now return values that are captured in `result.returns`
