@@ -456,6 +456,9 @@ MIT
 
 ## Changelog
 
+### 0.0.9
+- Updated `ezErrors` to accept new return types correctly.
+
 ### 0.0.8
 - Added typesafe returns for the `returns` provided back to `ezForm`
 

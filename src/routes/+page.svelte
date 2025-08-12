@@ -28,6 +28,8 @@
 		}
 	});
 	let { errors } = $derived(ezErrors(exampleForm));
+
+	$inspect(errors);
 </script>
 
 <form {...form}>
