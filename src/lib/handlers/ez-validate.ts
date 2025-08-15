@@ -1,6 +1,24 @@
 import { formDataToObject } from '$lib/helpers/form-to-object.js';
 import type { z, ZodTypeAny } from 'zod';
 
+function stripFiles<T>(obj: T): T {
+	if (obj instanceof File) {
+		return obj.name as unknown as T; // replace file with name
+	}
+	if (obj instanceof Blob) {
+		return '[blob]' as unknown as T; // or whatever placeholder you want
+	}
+	if (Array.isArray(obj)) {
+		return obj.map((item) => stripFiles(item)) as unknown as T;
+	}
+	if (obj && typeof obj === 'object') {
+		return Object.fromEntries(
+			Object.entries(obj).map(([k, v]) => [k, stripFiles(v)])
+		) as T;
+	}
+	return obj;
+}
+
 // ---------- Types
 
 type FieldErrors<TSchema extends ZodTypeAny> = {
@@ -91,7 +109,7 @@ export async function ezValidate<
 
 	const result: EZSuccess<TSchema, Awaited<SExtra>> = {
 		success: true,
-		data: validated.data,
+		data: stripFiles(validated.data),
 		returns
 	};
 

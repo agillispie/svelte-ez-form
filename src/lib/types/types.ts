@@ -1,7 +1,6 @@
 
 export type SuccessResult<TData, SExtra> = {
 	success: true;
-	data: TData;
 	returns: SExtra;
 };
 

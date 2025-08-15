@@ -32,8 +32,9 @@
 	$inspect(errors);
 </script>
 
-<form {...form}>
+<form enctype="multipart/form-data" {...form}>
 	<input type="text" name="name" placeholder="Name" />
+	<input name="file" type="file" />
 	{#if errors?.name}
 		<span class="error">{errors.name}</span>
 	{/if}
