@@ -13,7 +13,7 @@
 	const form = ezForm(exampleForm, {
 		onSuccess: async (result) => {
 			count += 1;
-			console.log(result.returns.someValue);
+			console.log(result.returns.message);
 		},
 		onError: (error) => {
 			count += 1;
@@ -21,13 +21,13 @@
 		},
 		onSettled: (r) => {
 			//	count += 1;
-			console.log('settled', r);
+			console.log('settled');
 		},
 		append: {
 			user: () => user
 		}
 	});
-	let { errors } = $derived(ezErrors(exampleForm));
+	let { errors, formErrors } = $derived(ezErrors(exampleForm));
 
 	$inspect(errors);
 </script>
@@ -37,6 +37,10 @@
 	<input name="file" type="file" />
 	{#if errors?.name}
 		<span class="error">{errors.name}</span>
+	{/if}
+
+	{#if errors?.file}
+		<span class="error">{errors.file}</span>
 	{/if}
 
 	<button>Submit</button>

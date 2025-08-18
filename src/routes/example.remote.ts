@@ -1,5 +1,5 @@
 import { form } from "$app/server"
-import { ezValidate } from "$lib/index.js"
+import { ezFail, ezValidate } from "$lib/index.js"
 import z from "zod"
 
 const schema = z.object({
@@ -16,9 +16,16 @@ export const exampleForm = form(async (data) => {
   return await ezValidate(schema, data, {
     onSuccess: (result) => {
       console.log(result)
-
       console.log(result.user[0].tags)
-      return { someValue: "this is my value" }
+      if (Math.random() < 0.5) {
+        //  throw ezFail({ fieldErrors: { name: ['File is required this is a custom error'] } })
+        throw ezFail({ fieldErrors: {} })
+      } else {
+        return {
+          success: true,
+          message: "Form submitted successfully",
+        }
+      }
     }
   })
 })

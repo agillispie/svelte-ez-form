@@ -31,6 +31,27 @@ export type EZSuccess<TSchema extends ZodTypeAny, SExtra> = {
 	returns: SExtra;
 };
 
+class EZValidationError<
+	TSchema extends ZodTypeAny,
+	EExtra
+> extends Error {
+	public readonly fieldErrors: FieldErrors<TSchema>;
+	public readonly formErrors: string[];
+	public readonly returns?: EExtra;
+
+	constructor(args: {
+		fieldErrors?: FieldErrors<TSchema>;
+		formErrors?: string[];
+		returns?: EExtra;
+		message?: string;
+	}) {
+		super(args.message ?? 'EZValidationError');
+		this.fieldErrors = (args.fieldErrors ?? {}) as FieldErrors<TSchema>;
+		this.formErrors = args.formErrors ?? [];
+		this.returns = args.returns;
+	}
+}
+
 export type EZFailure<TSchema extends ZodTypeAny, EExtra> = {
 	success: false;
 	errors: FieldErrors<TSchema>;
@@ -53,6 +74,16 @@ export type EZValidateOptions<
 };
 
 
+export function ezFail<TSchema extends ZodTypeAny, EExtra = unknown>(args: {
+	fieldErrors?: FieldErrors<TSchema>;
+	formErrors?: string[];
+	returns?: EExtra;
+	message?: string;
+}): never {
+	throw new EZValidationError<TSchema, EExtra>(args);
+}
+
+
 
 export async function ezValidate<
 	TSchema extends ZodTypeAny,
@@ -69,6 +100,7 @@ export async function ezValidate<
 	const raw = formDataToObject(formData);
 	const validated = schema.safeParse(raw);
 
+
 	if (!validated.success) {
 		const flattened = validated.error.flatten();
 		const fieldErrors = flattened.fieldErrors as FieldErrors<TSchema>;
@@ -78,11 +110,11 @@ export async function ezValidate<
 			try {
 				returns = await options.onError(fieldErrors);
 			} catch {
-				// do nothing
+
 			}
 		}
 
-		const result: EZFailure<TSchema, Awaited<EExtra>> = {
+		const failResult: EZFailure<TSchema, Awaited<EExtra>> = {
 			success: false,
 			errors: fieldErrors,
 			formErrors: flattened.formErrors,
@@ -90,34 +122,96 @@ export async function ezValidate<
 		};
 
 		try {
-			await options?.onSettled?.(result);
+			await options?.onSettled?.(failResult);
 		} catch {
-			// do nothing
+
 		}
 
-		return result;
+		return failResult;
 	}
 
-	let returns = undefined as unknown as Awaited<SExtra>;
-	if (options?.onSuccess) {
-		try {
-			returns = await options.onSuccess(validated.data);
-		} catch {
-			// do nothing
-		}
-	}
 
-	const result: EZSuccess<TSchema, Awaited<SExtra>> = {
-		success: true,
-		data: stripFiles(validated.data),
-		returns
-	};
+	const parsed = validated.data;
+
 
 	try {
-		await options?.onSettled?.(result);
-	} catch {
-		// do not throw from settled
-	}
+		let returns = undefined as unknown as Awaited<SExtra>;
+		if (options?.onSuccess) {
+			returns = await options.onSuccess(parsed);
+		}
 
-	return result;
+		const ok: EZSuccess<TSchema, Awaited<SExtra>> = {
+			success: true,
+			data: stripFiles(parsed),
+			returns
+		};
+
+		try {
+			await options?.onSettled?.(ok);
+		} catch {
+
+		}
+		return ok;
+	} catch (err) {
+
+		if (err instanceof EZValidationError) {
+			const fieldErrors = err.fieldErrors as FieldErrors<TSchema>;
+
+			let returns = (err.returns ??
+				(undefined as unknown)) as Awaited<EExtra>;
+
+
+			if (options?.onError) {
+				try {
+
+					const res = await options.onError(fieldErrors);
+					if (typeof res !== 'undefined') returns = res as Awaited<EExtra>;
+				} catch {
+
+				}
+			}
+
+			const failResult: EZFailure<TSchema, Awaited<EExtra>> = {
+				success: false,
+				errors: fieldErrors,
+				formErrors: err.formErrors,
+				returns
+			};
+
+			try {
+				await options?.onSettled?.(failResult);
+			} catch {
+
+			}
+
+			return failResult;
+		}
+
+		// Unknown error: convert to a generic failure
+		const genericFieldErrors = {} as FieldErrors<TSchema>;
+		let returns = undefined as unknown as Awaited<EExtra>;
+
+		if (options?.onError) {
+			try {
+				returns = await options.onError(genericFieldErrors);
+			} catch {
+
+			}
+		}
+
+		const failResult: EZFailure<TSchema, Awaited<EExtra>> = {
+			success: false,
+			errors: genericFieldErrors,
+			formErrors: ['Unexpected error'],
+			returns
+		};
+
+		try {
+			await options?.onSettled?.(failResult);
+		} catch {
+
+		}
+
+		return failResult;
+	}
 }
